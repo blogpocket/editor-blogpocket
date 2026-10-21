@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Editor Blogpocket</title>
+  <meta name="theme-color" content="#f7f5f0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1b1b1d" media="(prefers-color-scheme: dark)">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Editor">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Barra superior -->
+  <header id="topbar" class="topbar">
+    <div class="topbar-side">
+      <button class="tb" id="btn-drafts" title="Borradores (Ctrl/⌘ + Mayús + O)" aria-label="Borradores">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </button>
+    </div>
+
+    <nav class="format-bar" id="format-bar" aria-label="Formato">
+      <button class="tb tb-text" data-cmd="h2" title="Título 2 (Ctrl/⌘ + Alt + 2)">H2</button>
+      <button class="tb tb-text" data-cmd="h3" title="Título 3 (Ctrl/⌘ + Alt + 3)">H3</button>
+      <button class="tb tb-text" data-cmd="h4" title="Título 4 (Ctrl/⌘ + Alt + 4)">H4</button>
+      <span class="sep"></span>
+      <button class="tb" data-cmd="ul" title="Lista (Ctrl/⌘ + Mayús + 8)" aria-label="Lista">
+        <svg viewBox="0 0 24 24"><circle cx="5" cy="7" r="1.2" class="fill"/><circle cx="5" cy="12" r="1.2" class="fill"/><circle cx="5" cy="17" r="1.2" class="fill"/><path d="M9 7h11M9 12h11M9 17h11"/></svg>
+      </button>
+      <button class="tb" data-cmd="ol" title="Lista numerada (Ctrl/⌘ + Mayús + 7)" aria-label="Lista numerada">
+        <svg viewBox="0 0 24 24"><path d="M9 7h11M9 12h11M9 17h11"/><text x="2.5" y="9" class="tnum">1</text><text x="2.5" y="14" class="tnum">2</text><text x="2.5" y="19" class="tnum">3</text></svg>
+      </button>
+      <button class="tb" data-cmd="quote" title="Cita (Ctrl/⌘ + Mayús + .)" aria-label="Cita">
+        <svg viewBox="0 0 24 24"><path d="M5 6v12M10 8h9M10 12h9M10 16h6"/></svg>
+      </button>
+      <span class="sep"></span>
+      <button class="tb" data-cmd="codeblock" title="Bloque de código" aria-label="Bloque de código">
+        <svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>
+      </button>
+      <button class="tb" data-cmd="table" title="Tabla" aria-label="Tabla">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="1.5"/><path d="M3.5 10h17M3.5 14.5h17M10 5v14"/></svg>
+      </button>
+      <button class="tb" data-cmd="footnote" title="Nota al pie" aria-label="Nota al pie">
+        <svg viewBox="0 0 24 24"><path d="M4 9h10M4 14h7M4 19h12"/><text x="15.5" y="9.5" class="tnum">1</text></svg>
+      </button>
+      <button class="tb" data-cmd="image" title="Imagen" aria-label="Imagen">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="1.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>
+      </button>
+      <button class="tb" data-cmd="hr" title="Separador" aria-label="Separador">
+        <svg viewBox="0 0 24 24"><path d="M3 12h18"/><path d="M8 7h8M8 17h8" class="faint"/></svg>
+      </button>
+    </nav>
+
+    <div class="topbar-side right">
+      <button class="tb" id="btn-preview" title="Vista previa (Ctrl/⌘ + Mayús + P)" aria-label="Vista previa">
+        <svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></svg>
+      </button>
+      <button class="tb" id="btn-export" title="Exportar" aria-label="Exportar" aria-haspopup="menu">
+        <svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 8.5L12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></svg>
+      </button>
+      <button class="tb" id="btn-settings" title="Ajustes" aria-label="Ajustes">
+        <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Menú exportar -->
+  <div class="menu" id="menu-export" role="menu" hidden>
+    <button role="menuitem" data-export="copy-md">Copiar Markdown</button>
+    <button role="menuitem" data-export="copy-html">Copiar HTML <span class="hint">para WordPress</span></button>
+    <hr>
+    <button role="menuitem" data-export="download-md">Descargar .md</button>
+    <button role="menuitem" data-export="download-html">Descargar .html</button>
+    <hr>
+    <button role="menuitem" data-export="import">Abrir archivo .md…</button>
+    <hr>
+    <button role="menuitem" data-export="backup">Copia de seguridad <span class="hint">todos los borradores</span></button>
+    <button role="menuitem" data-export="restore">Restaurar copia…</button>
+  </div>
+
+  <!-- Ajustes -->
+  <div class="menu settings" id="menu-settings" hidden>
+    <div class="set-row">
+      <span>Tema</span>
+      <div class="seg" data-setting="theme">
+        <button data-value="auto">Auto</button><button data-value="light">Claro</button><button data-value="dark">Oscuro</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <span>Letra</span>
+      <div class="seg" data-setting="font">
+        <button data-value="mono">Mono</button><button data-value="sans">Sans</button><button data-value="serif">Serif</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <span>Tamaño</span>
+      <div class="seg" data-setting="size">
+        <button data-value="s">S</button><button data-value="m">M</button><button data-value="l">L</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <span>Ancho</span>
+      <div class="seg" data-setting="width">
+        <button data-value="narrow">Estrecho</button><button data-value="normal">Normal</button><button data-value="wide">Ancho</button>
+      </div>
+    </div>
+    <div class="set-row">
+      <span>Modo enfoque</span>
+      <div class="seg" data-setting="focus">
+        <button data-value="off">No</button><button data-value="on">Sí</button>
+      </div>
+    </div>
+    <hr>
+    <div class="set-foot">
+      <button class="linkish" id="btn-shortcuts">Atajos de teclado</button>
+      <span class="ver" id="app-version"></span>
+    </div>
+  </div>
+
+  <!-- Panel de borradores -->
+  <aside id="drawer" class="drawer" aria-label="Borradores" hidden>
+    <div class="drawer-head">
+      <input type="search" id="draft-search" placeholder="Buscar borradores" aria-label="Buscar borradores">
+      <button class="btn-new" id="btn-new" title="Nuevo borrador (Ctrl/⌘ + Alt + N)">Nuevo</button>
+    </div>
+    <ul id="draft-list" class="draft-list"></ul>
+  </aside>
+  <div id="scrim" class="scrim" hidden></div>
+
+  <!-- Zona de escritura -->
+  <main id="main" class="main">
+    <div class="paper" id="paper">
+      <div class="editor-wrap" id="editor-wrap">
+        <div id="highlight" class="layer highlight" aria-hidden="true"></div>
+        <textarea id="editor" class="layer editor" spellcheck="true" autocapitalize="sentences" autocomplete="off"
+          placeholder="Escribe aquí…" aria-label="Texto del post"></textarea>
+      </div>
+      <article id="preview" class="preview" hidden></article>
+    </div>
+  </main>
+
+  <!-- Barra de estado -->
+  <footer class="statusbar" id="statusbar">
+    <span id="st-words">0 palabras</span>
+    <span id="st-read">0 min</span>
+    <span id="st-save" class="st-save"></span>
+  </footer>
+
+  <!-- Barra flotante de selección -->
+  <div id="selbar" class="selbar" role="toolbar" aria-label="Formato del texto seleccionado" hidden>
+    <div class="selbar-btns">
+      <button data-cmd="bold" title="Negrita (Ctrl/⌘ + B)"><b>B</b></button>
+      <button data-cmd="italic" title="Cursiva (Ctrl/⌘ + I)"><i>I</i></button>
+      <button data-cmd="strike" title="Tachado (Ctrl/⌘ + Mayús + X)"><s>S</s></button>
+      <button data-cmd="code" title="Código (Ctrl/⌘ + E)" class="mono">&lt;/&gt;</button>
+      <button data-cmd="link" title="Enlace (Ctrl/⌘ + K)" aria-label="Enlace">
+        <svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
+      </button>
+    </div>
+    <form class="selbar-link" id="link-form" hidden>
+      <input type="url" id="link-input" placeholder="https://…" aria-label="Dirección del enlace" inputmode="url" autocomplete="off">
+      <button type="submit" title="Aplicar">↵</button>
+    </form>
+  </div>
+
+  <!-- Diálogo genérico -->
+  <dialog id="dialog" class="dialog">
+    <form method="dialog" id="dialog-form">
+      <h2 id="dialog-title"></h2>
+      <div id="dialog-body"></div>
+      <div class="dialog-actions">
+        <button value="cancel" id="dialog-cancel">Cancelar</button>
+        <button value="ok" id="dialog-ok" class="primary">Aceptar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input type="file" id="file-input" accept=".md,.markdown,.txt,text/markdown,text/plain" hidden>
+  <input type="file" id="backup-input" accept=".json,application/json" hidden>
+  <div id="mirror" class="mirror" aria-hidden="true"></div>
+
+  <script src="vendor/marked.min.js"></script>
+  <script src="vendor/marked-footnote.js"></script>
+  <script src="vendor/purify.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
