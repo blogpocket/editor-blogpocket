@@ -4,6 +4,8 @@ Editor de Markdown minimalista para escribir los posts de tu blog. Lo instalas e
 
 **[Prueba la demo](https://blogpocket.github.io/editor-blogpocket/)** · Versión 1.1.0 · Licencia MIT
 
+Te cuento cómo nació y cómo instalarlo en [Blogpocket](https://blogpocket.es/articulo/editor-markdown-blogpocket/).
+
 ![Captura del editor](docs/captura.png)
 
 ## Qué hace
