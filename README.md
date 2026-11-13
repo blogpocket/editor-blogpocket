@@ -30,6 +30,12 @@ La primera línea que empieza por `#` cuenta como título del post. «Copiar HTM
 
 «Copiar HTML» copia en formato enriquecido. Al pegarlo en el editor de bloques, WordPress crea bloques de verdad: párrafos, títulos, listas, tablas, imágenes.
 
+## Versión para Claude
+
+En la carpeta [`claude/`](claude/) tienes el editor como artefacto de Claude. Escribes en el panel lateral, pulsas **Enviar**, eliges la imagen y dónde va, y le dices a Claude «Publica lo del editor». Claude deja el post como borrador en tu WordPress a través del conector WPVibe.
+
+La carpeta incluye la skill que hace la publicación y un [README](claude/README.md) con la instalación paso a paso.
+
 ## Instalación en un hosting con cPanel
 
 1. Descarga el repositorio (botón **Code → Download ZIP**).
@@ -118,6 +124,7 @@ Si haces un fork y quieres tu propia demo: Settings → Pages → Deploy from a 
 | `icons/` | Iconos de la app |
 | `vendor/` | Librerías de terceros, sin CDN |
 | `.htaccess` | Seguridad, caché y contraseña |
+| `claude/` | Versión del editor para Claude, con su skill |
 
 Sin compilación ni dependencias que instalar. Editas un archivo, lo subes y listo.
 
