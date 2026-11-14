@@ -21,7 +21,8 @@ El usuario escribe sus posts en un artefacto de Claude llamado **Editor Blogpock
 El artefacto guarda sus datos en su base de datos (herramientas `db_list`, `db_get` y `db_write` del conector de artefactos):
 
 - Colección `drafts`, un documento por borrador:
-  - `content`: Markdown. La primera línea `# …` es el título.
+  - `content`: Markdown. La primera línea `# …` es el título. Las imágenes del cuerpo subidas desde el equipo van como `![alt](/_blob/<assetId> "título")`, una por línea. Las que empiezan por `https://` ya están en WordPress.
+  - `imagenes`: mapa `assetId → {nombre, tipo, ancho, alto, bytes, recomprimida, alinear, anchoPx, subida}` con las imágenes del cuerpo. `ancho`, `alto` y `bytes` son los del archivo original. Si `recomprimida` es `true`, el asset es una copia JPEG más ligera para que la puedas ver, pero el usuario soltará el original en el panel. `alinear`: `centro`, `izquierda`, `derecha` o `completa`. `anchoPx`: ancho en px, o `null` para usar el tamaño grande sin redimensionar. Puede haber ids de imágenes que el usuario borró del texto: solo cuentan las que aparecen en `content`.
   - `updated`, `created`: marcas de tiempo en milisegundos.
   - `envio`:
     - `estado`: `pendiente` (lo pone el editor), `publicando`, `borrador_wp` o `error` (los pones tú).
@@ -30,6 +31,7 @@ El artefacto guarda sus datos en su base de datos (herramientas `db_list`, `db_g
     - `imagen`: `null` o `{id, nombre, tipo, ancho, alto, bytes}`. `id` es un recurso (asset) del artefacto.
     - `posicion`: con imagen, `izquierda`, `derecha`, `encima` o `destacada`.
     - `notas`: indicaciones libres del usuario.
+    - `cuerpo`: copia, en el momento de enviar, de las imágenes del cuerpo (`[{id, …mismos campos que en imagenes}]`). Manda el `content` actual: si no coinciden, recalcula la lista con los `/_blob/<id>` del texto y toma sus datos de `imagenes`.
     - `enviado`, `wpId`, `wpUrl`, `editUrl`, `mensaje`.
 - Documento `config/sitios`: `{sitios: [...]}`, los sitios que el usuario configuró en Ajustes.
 
@@ -57,6 +59,17 @@ Si `envio.imagen` no es `null`:
    - Con `posicion: "destacada"`, crea primero el borrador (Paso 5) y llama a `upload_media` con su `post_id`. No la metas en el cuerpo.
    - En las demás posiciones, sin `post_id`. Guarda el ID del medio y el bloque de imagen que devuelve la herramienta.
 4. Pide `GET /wp/v2/media/<id>?_fields=id,media_details` y toma `media_details.sizes.large.source_url`. Si no existe `large`, usa `full`.
+
+## Paso 3b: Imágenes del cuerpo
+
+Si el `content` tiene marcadores `/_blob/<id>`:
+
+1. **Lista.** Saca los ids en orden de aparición y sus datos de `imagenes` (o de `envio.cuerpo`).
+2. **ALT.** Si el marcador trae ALT, úsalo tal cual. Si viene vacío, mira la imagen con `read_asset` (`max_bytes: 4194304`) y escribe un ALT que describa lo que se ve. Si `read_asset` la rechaza por tamaño, escríbelo a partir del nombre y del texto que la rodea, y dilo en el resumen.
+3. **Un solo panel para todas.** Llama a `request_upload` una vez, junto con la imagen del Paso 3 si la hay. Di al usuario qué archivos soltar (el `nombre` de cada una) y que puede soltarlos todos a la vez. Sondea `check_upload` hasta que estén todos.
+4. **Emparejar.** WPVibe cambia los nombres al subir (quita tildes y cambia los espacios por guiones). Normaliza los dos nombres (NFD sin tildes, minúsculas, solo letras y números) y empareja así. Si falta alguno o hay dudas, compara las dimensiones que devuelve `upload_media` con `ancho` × `alto`. Si aun así no cuadra, pregunta antes de colocarla.
+5. **Subir.** `upload_media` por cada imagen, sin `post_id`, con `title` (el título del marcador o el nombre sin extensión) y `alt_text`. Después `GET /wp/v2/media/<id>?_fields=id,media_details` y toma la URL de `large` (si no existe, `full`).
+6. **Llamadas.** Cada imagen gasta dos llamadas de WPVibe. Si son muchas y tu plan tiene límite diario, avisa antes de seguir.
 
 ## Paso 4: Metadatos
 
@@ -108,6 +121,15 @@ Escapa `&`, `<` y `>` antes de aplicar el formato en línea.
 - `encima`: pega primero el bloque de imagen que devolvió `upload_media`, sin tocarlo, y después los bloques del texto.
 - `destacada`: no va en el cuerpo (Paso 3).
 
+**Imágenes del cuerpo (Paso 3b):** cada marcador `/_blob/<id>`, en su propia línea, se convierte en un bloque de imagen, no en un párrafo. Siempre con `lightbox` y `sizeSlug` `large`:
+
+- `centro` con `anchoPx`: `<!-- wp:image {"lightbox":{"enabled":true},"id":<ID>,"width":"<N>px","height":"auto","sizeSlug":"large","linkDestination":"none","align":"center"} -->` / `<figure class="wp-block-image aligncenter size-large is-resized"><img src="<URL_LARGE>" alt="<ALT>" class="wp-image-<ID>" style="width:<N>px;height:auto"/></figure>` / `<!-- /wp:image -->`.
+- `centro` sin ancho: el mismo bloque sin `width` ni `height`, con las clases `aligncenter size-large` y el `<img>` sin `style`.
+- `completa`: sin `align` ni ancho, con las clases `wp-block-image size-large`.
+- `izquierda` / `derecha`: el patrón de grupo de arriba (ancho `anchoPx`, o 250 px si no hay). El grupo envuelve la imagen y los bloques que la siguen hasta el siguiente encabezado o el final, para que el texto la rodee.
+
+Las imágenes con URL de WordPress (`https://…/wp-content/uploads/…`) van como bloque de imagen centrado con esa URL y su ALT. Si no tienes su ID de medio, búscalo con `GET /wp/v2/media?search=<nombre de archivo>`.
+
 **Crear el borrador:** genera el cuerpo con `json.dumps(..., ensure_ascii=False)` y pásalo tal cual a `rest_api`:
 
 - Entrada: `POST /wp/v2/posts` con `{title, slug, status: "draft", excerpt, categories, tags, content}`.
@@ -127,4 +149,4 @@ Escapa `&`, `<` y `>` antes de aplicar el formato en línea.
    El editor mostrará «En WordPress como borrador» con enlace a la edición.
 2. Si paraste por un error: `{"envio": {"estado": "error", "mensaje": "<qué pasó, en una frase>"}}`.
 3. Comprueba el borrador con `GET /wp/v2/<posts|pages>/<id>?context=edit` (`fields: "id,status,content.raw"`).
-4. Entrega al usuario el enlace de edición, la vista previa y un resumen corto: título, slug, frase clave, categoría y etiquetas, SEO y ALT. Añade las erratas que hayas visto.
+4. Entrega al usuario el enlace de edición, la vista previa y un resumen corto: título, slug, frase clave, categoría y etiquetas, SEO y ALT. Añade la lista de imágenes del cuerpo con su ID de medio y su ALT (marca los ALT escritos sin ver la imagen) y las erratas que hayas visto.

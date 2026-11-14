@@ -41,18 +41,20 @@ En Claude, ve a **Personalizar > Habilidades**, pulsa **+**, después **Crear ha
 ## Cómo se usa
 
 1. Escribe el post. La primera línea con `#` es el título. El texto se guarda solo.
+   - Para meter imágenes en el cuerpo, pulsa el botón de imagen. Puedes subir un archivo desde tu equipo o pegar la dirección de una imagen que ya esté en WordPress. Con un archivo eliges la colocación (centrada, flotando a la izquierda o a la derecha, o a todo el ancho) y el ancho en píxeles. Si dejas el texto alternativo vacío, Claude lo escribe al ver la imagen.
 2. Pulsa **Enviar** y elige:
    - entrada o página,
    - una imagen (opcional),
    - su colocación: flotando a la izquierda, flotando a la derecha, encima del texto o solo como imagen destacada,
    - el sitio,
    - y, si quieres, notas para Claude: categoría, etiquetas o frase clave.
-3. Escribe en el chat **Publica lo del editor**.
+3. Escribe en el chat **Publica lo del editor**. Si el texto lleva imágenes subidas desde tu equipo, Claude te pedirá que las sueltes todas a la vez en el panel de WPVibe.
 4. Cuando Claude termina, la barra inferior del editor muestra «En WordPress como borrador» con un enlace a la edición. Revisa el borrador y publícalo tú.
 
 ## Límites
 
-- **La imagen se sube dos veces.** Claude la ve en el editor para escribir el texto alternativo y decidir dónde va. Pero WordPress solo admite imágenes que pueda descargar desde una dirección pública, y las del artefacto son privadas. Al publicar, Claude te mostrará el panel de subida de WPVibe y tendrás que soltar ahí el mismo archivo.
+- **Las imágenes se suben dos veces.** Claude las ve en el editor para escribir el texto alternativo y decidir dónde van. Pero WordPress solo admite imágenes que pueda descargar desde una dirección pública, y las del artefacto son privadas. Al publicar, Claude te mostrará el panel de subida de WPVibe y tendrás que soltar ahí los mismos archivos. Puedes soltarlos todos a la vez.
+- **Imágenes grandes.** Claude solo puede ver imágenes de hasta 4 MB. Si una pesa más de 3,5 MB, el editor guarda una copia recomprimida para Claude. En el panel sueltas el original.
 - **Sin descargas.** Los artefactos no permiten descargar archivos, así que esta versión no exporta `.md` ni `.html`. Puedes copiar el Markdown o el HTML.
 - **Tus borradores de la versión web no se copian solos.** Haz una copia de seguridad en el editor de tu hosting y ábrela aquí con **Exportar > Importar copia del editor…**.
 - **Probado con temas de bloques.** Si en tu tema el texto no rodea la imagen flotante, díselo a Claude: el ajuste suele estar en el bloque Grupo que la envuelve.
