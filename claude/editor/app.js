@@ -738,23 +738,140 @@
 
   function hrCommand() { insertBlock('---', 3); }
 
+  // Imágenes del cuerpo subidas como assets del artefacto: en el texto van como ![alt](/_blob/<id>)
+  const RE_BLOB_IMG = /!\[[^\]\n]*\]\(\/_blob\/([A-Za-z0-9_-]+)/g;
+  function bodyImageIds(md) {
+    const ids = [];
+    for (const m of md.matchAll(RE_BLOB_IMG)) if (!ids.includes(m[1])) ids.push(m[1]);
+    return ids;
+  }
+
+  const ALIGN_ICONS = {
+    centro: '<svg viewBox="0 0 54 38"><path d="M4 5h46"/><rect class="blk-img" x="17" y="9" width="20" height="16" rx="2"/><path d="M4 30h46M4 35h30"/></svg>',
+    izquierda: LAYOUT_ICONS_REF('izquierda'),
+    derecha: LAYOUT_ICONS_REF('derecha'),
+    completa: '<svg viewBox="0 0 54 38"><path d="M4 5h46"/><rect class="blk-img" x="4" y="9" width="46" height="16" rx="2"/><path d="M4 30h46M4 35h30"/></svg>',
+  };
+  function LAYOUT_ICONS_REF(k) {
+    return k === 'izquierda'
+      ? '<svg viewBox="0 0 54 38"><rect class="blk-img" x="4" y="5" width="18" height="15" rx="2"/><path d="M26 7h24M26 12h24M26 17h24M4 25h46M4 30h46M4 35h30"/></svg>'
+      : '<svg viewBox="0 0 54 38"><rect class="blk-img" x="32" y="5" width="18" height="15" rx="2"/><path d="M4 7h24M4 12h24M4 17h24M4 25h46M4 30h46M4 35h30"/></svg>';
+  }
+
   async function imageCommand() {
     const v = ta.value;
     const s = ta.selectionStart, e = ta.selectionEnd;
     const sel = v.slice(s, e).trim();
+    const canUpload = !!(assetsApi && remote);
+    const opt = (name, value, label, checked) =>
+      `<label class="opt"><input type="radio" name="${name}" value="${value}"${checked ? ' checked' : ''}><span>${label}</span></label>`;
+    let nueva = null;
     const res = await dialog({
       title: 'Insertar imagen',
-      body: `<label for="f-iurl">Dirección de la imagen</label><input type="url" id="f-iurl" name="url" placeholder="https://tublog.com/wp-content/uploads/…" autocomplete="off" inputmode="url">
-             <label for="f-alt">Texto alternativo (describe lo que se ve)</label><input type="text" id="f-alt" name="alt" autocomplete="off">
+      wide: canUpload,
+      body: `${canUpload ? `<span class="field-title">Origen</span>
+             <div class="opts">${opt('origen', 'subir', 'Subir desde tu equipo', true)}${opt('origen', 'url', 'Dirección de WordPress', false)}</div>` : ''}
+             <div id="i-up"${canUpload ? '' : ' hidden'}>
+               <div class="img-box">
+                 <img class="img-thumb" id="i-thumb" alt="" hidden>
+                 <div class="img-info">
+                   <div id="i-info">Ninguna imagen elegida.</div>
+                   <div class="img-actions"><button type="button" id="i-pick">Elegir imagen…</button>
+                   <input type="file" id="i-file" accept="image/jpeg,image/png,image/webp,image/gif" hidden></div>
+                 </div>
+               </div>
+               <span class="field-title">Colocación</span>
+               <div class="opts layout-pick layout-4">
+                 ${opt('alinear', 'centro', ALIGN_ICONS.centro + 'Centrada', true)}
+                 ${opt('alinear', 'izquierda', ALIGN_ICONS.izquierda + 'Flotando a la izquierda', false)}
+                 ${opt('alinear', 'derecha', ALIGN_ICONS.derecha + 'Flotando a la derecha', false)}
+                 ${opt('alinear', 'completa', ALIGN_ICONS.completa + 'A todo el ancho', false)}
+               </div>
+               <label for="f-iw">Ancho en píxeles (vacío: tamaño grande)</label><input type="number" id="f-iw" name="ancho" min="100" max="1600" step="10" inputmode="numeric">
+               <p class="note">Al publicar, Claude te pedirá que sueltes esta misma imagen en el panel de WPVibe: WordPress no puede descargarla desde aquí.</p>
+             </div>
+             <div id="i-url"${canUpload ? ' hidden' : ''}>
+               <label for="f-iurl">Dirección de la imagen</label><input type="url" id="f-iurl" name="url" placeholder="https://tublog.com/wp-content/uploads/…" autocomplete="off" inputmode="url">
+             </div>
+             <label for="f-alt">Texto alternativo (describe lo que se ve)</label><input type="text" id="f-alt" name="alt" autocomplete="off"${canUpload ? ' placeholder="Vacío: lo escribe Claude al ver la imagen"' : ''}>
              <label for="f-ititle">Título (opcional)</label><input type="text" id="f-ititle" name="title" autocomplete="off">`,
       ok: 'Insertar',
       prefill: URL_RE.test(sel) ? { url: sel } : (sel ? { alt: sel } : {}),
+      onOpen: (b) => {
+        if (!canUpload) return;
+        const fileInput = $('#i-file', b);
+        const thumb = $('#i-thumb', b);
+        const info = $('#i-info', b);
+        const width = $('#f-iw', b);
+        const mode = () => {
+          const up = ($('input[name="origen"]:checked', b) || {}).value !== 'url';
+          $('#i-up', b).hidden = !up; $('#i-url', b).hidden = up;
+          $('#f-alt', b).placeholder = up ? 'Vacío: lo escribe Claude al ver la imagen' : '';
+        };
+        $$('input[name="origen"]', b).forEach((r) => r.addEventListener('change', mode));
+        if (URL_RE.test(sel)) { $('input[name="origen"][value="url"]', b).checked = true; mode(); }
+        $('#i-pick', b).addEventListener('click', () => fileInput.click());
+        $$('input[name="alinear"]', b).forEach((r) => r.addEventListener('change', () => {
+          const a = r.value;
+          if (a === 'completa') width.value = '';
+          else if ((a === 'izquierda' || a === 'derecha') && !width.value) width.value = 250;
+        }));
+        fileInput.addEventListener('change', async () => {
+          const f = fileInput.files[0];
+          fileInput.value = '';
+          if (!f) return;
+          try { nueva = await prepareImage(f); } catch (err) { toast(err.message || 'No se puede leer la imagen'); return; }
+          if (thumb.dataset.obj) URL.revokeObjectURL(thumb.dataset.obj);
+          thumb.dataset.obj = URL.createObjectURL(nueva.blob);
+          thumb.src = thumb.dataset.obj; thumb.hidden = false;
+          info.textContent = `${nueva.nombre} · ${nueva.anchoOrig} × ${nueva.altoOrig} px` + (nueva.recomprimida ? ' · copia recomprimida para Claude' : '');
+          $('#i-pick', b).textContent = 'Cambiar';
+          if (!width.value) width.value = nueva.altoOrig > nueva.anchoOrig ? 400 : '';
+        });
+      },
     });
+    const thumbEl = $('#i-thumb'); if (thumbEl && thumbEl.dataset.obj) URL.revokeObjectURL(thumbEl.dataset.obj);
     ta.focus();
     ta.setSelectionRange(s, e);
-    if (!res || !res.url.trim()) return;
+    if (!res) return;
     const title = res.title.trim() ? ` "${res.title.trim().replace(/"/g, '\\"')}"` : '';
-    const md = `![${res.alt.trim()}](${res.url.trim()}${title})`;
+    const alt = res.alt.trim().replace(/[\[\]]/g, '');
+    let url = (res.url || '').trim();
+
+    if (canUpload && res.origen !== 'url') {
+      if (!nueva) { toast('No has elegido ninguna imagen'); return; }
+      dirty = true;
+      await saveNow();
+      setSaveStatus('Subiendo imagen…', true);
+      let up;
+      try {
+        up = await assetsApi.upload(nueva.blob, { type: nueva.blob.type || 'image/jpeg' });
+      } catch (err) {
+        setSaveStatus('Guardado');
+        toast('No se pudo subir la imagen' + (err && err.code ? ` (${err.code})` : ''), 4000);
+        return;
+      }
+      const ancho = parseInt(res.ancho, 10);
+      const meta = {
+        nombre: nueva.nombre, tipo: up.contentType || nueva.blob.type,
+        ancho: nueva.anchoOrig, alto: nueva.altoOrig, bytes: nueva.bytesOrig,
+        recomprimida: nueva.recomprimida,
+        alinear: ['centro', 'izquierda', 'derecha', 'completa'].includes(res.alinear) ? res.alinear : 'centro',
+        anchoPx: res.alinear === 'completa' || !(ancho > 0) ? null : ancho,
+        subida: Date.now(),
+      };
+      try {
+        const todas = { ...(current.imagenes || {}), [up.id]: meta };
+        await DB.merge(current.id, { imagenes: todas });
+        current.imagenes = todas;
+      } catch (err) {
+        console.warn('imagenes', err);
+      }
+      setSaveStatus('Guardado');
+      url = '/_blob/' + up.id;
+    }
+    if (!url) return;
+    const md = `![${alt}](${url}${title})`;
     if (s !== e) ta.setSelectionRange(e, e);
     insertBlock(md, md.length);
   }
@@ -1655,7 +1772,7 @@
       w = cw; h = ch; recomprimida = true;
     }
     URL.revokeObjectURL(info.url);
-    return { blob, w, h, recomprimida, nombre: file.name };
+    return { blob, w, h, recomprimida, nombre: file.name, anchoOrig: info.w, altoOrig: info.h, bytesOrig: file.size };
   }
 
   const LAYOUT_ICONS = {
@@ -1712,6 +1829,7 @@
           ${opt('posicion', 'destacada', LAYOUT_ICONS.destacada + 'Solo imagen destacada', posicion === 'destacada')}
         </div>
       </div>
+      <p class="note" id="s-body-imgs" hidden></p>
       <span class="field-title">Sitio</span>
       <div class="opts">${sitios.map((s) => opt('sitio', esc(s), esc(siteLabel(s)), s === sitio)).join('')}</div>
       <span class="field-title">Notas para Claude (opcional)</span>
@@ -1735,6 +1853,14 @@
         fileInput = $('#s-file', b);
         fileInput.addEventListener('change', onFile);
         $('#s-notas', b).value = typeof prev.notas === 'string' ? prev.notas : '';
+        const nb = bodyImageIds(ta.value).length;
+        if (nb) {
+          const el = $('#s-body-imgs', b);
+          el.textContent = nb === 1
+            ? 'El texto lleva 1 imagen subida desde tu equipo. Claude te pedirá que la sueltes en el panel de WPVibe.'
+            : `El texto lleva ${nb} imágenes subidas desde tu equipo. Claude te pedirá que las sueltes todas a la vez en el panel de WPVibe.`;
+          el.hidden = false;
+        }
         refresh = () => {
           tipo = ($('input[name="tipo"]:checked', b) || {}).value || 'entrada';
           $('#s-img-title', b).textContent = 'Imagen (opcional)';
@@ -1780,6 +1906,8 @@
     if (!res) return;
 
     tipo = res.tipo === 'pagina' ? 'pagina' : 'entrada';
+    const metas = current.imagenes || {};
+    const cuerpo = bodyImageIds(ta.value).map((id) => ({ id, ...(metas[id] || {}) }));
     if (nueva) {
       setSaveStatus('Subiendo imagen…', true);
       try {
@@ -1798,6 +1926,7 @@
       imagen: imagen || null,
       posicion: imagen ? (res.posicion || 'izquierda') : null,
       notas: (res.notas || '').trim(),
+      cuerpo: cuerpo,
       enviado: Date.now(),
       wpId: null, wpUrl: null, editUrl: null, mensaje: null,
     };
@@ -2034,6 +2163,7 @@
         const d = snapDoc(ch.doc);
         const envChanged = JSON.stringify(d.envio || null) !== JSON.stringify(current.envio || null);
         current.envio = d.envio;
+        if (d.imagenes) current.imagenes = d.imagenes;
         // Cambios hechos desde otro dispositivo, si aquí no hay nada pendiente
         if (!dirty && typeof d.content === 'string' && d.content !== ta.value && d.updated > current.updated) {
           const pos = Math.min(ta.selectionStart, d.content.length);
@@ -2089,6 +2219,8 @@ Escribe aquí los posts de tu blog. Todo se guarda solo y Claude puede leerlo.
 Antes de nada, abre Ajustes y añade tu sitio en «Sitios de WordPress».
 
 Cuando el texto esté listo, pulsa **Enviar**: eliges si es una entrada o una página, añades la imagen y dices dónde va. Después escribe en el chat «publica lo del editor».
+
+Con el botón de imagen puedes subir fotos desde tu equipo al cuerpo del texto. Al publicar, Claude te pedirá que las sueltes en el panel de WPVibe.
 
 ## Cómo funciona
 
